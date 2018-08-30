@@ -65,11 +65,12 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     epoch = time.time()
     user_id = uuid.uuid4() # this could be incremental or even a uuid
     unique_id = "%s_%d" % (user_id, epoch)
+    print(unique_id)
     
-    pil_image_1 = Image.fromarray(face_crop_1)
-    pil_image_2 = Image.fromarray(face_crop_2)
-    pil_image_1.save(unique_id + '_1.jpg')
-    pil_image_2.save(unique_id + '_2.jpg')
+    #pil_image_1 = Image.fromarray(face_crop_1)
+    #pil_image_2 = Image.fromarray(face_crop_2)
+    #pil_image_1.save(unique_id + '_1.jpg')
+    #pil_image_2.save(unique_id + '_2.jpg')
                      
     face_found = False
     is_match = False
