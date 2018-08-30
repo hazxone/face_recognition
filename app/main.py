@@ -27,11 +27,11 @@ def upload_image():
         if file.filename == '' and file2.filename == '':
             return redirect(request.url)
 
-        rules = [file == True, allowed_file(file.filename) == True, file2 == True, allowed_file(file2.filename) == True]
-        if all(rules):
+        #rules = [file == True, allowed_file(file.filename) == True, file2 == True, allowed_file(file2.filename) == True]
+        #if all(rules):
         #if file and allowed_file(file.filename) and file2 and allowed_file(file2.filename):
             # The image file seems valid! Detect faces and return the result.
-            return detect_faces_in_image(file, file2)
+        return detect_faces_in_image(file, file2)
 
     # If no valid image file was uploaded, show the file upload form:
     return '''
@@ -40,6 +40,7 @@ def upload_image():
     <h1>Upload a picture and see if it's a picture of Obama!</h1>
     <form method="POST" enctype="multipart/form-data">
       <input type="file" name="file">
+      <input type="file" name="file2">
       <input type="submit" value="Upload">
     </form>
     '''
