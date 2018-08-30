@@ -80,10 +80,6 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     
     face_1_enc = face_recognition.face_encodings(face_crop_array_1)[0]
     face_2_enc = face_recognition.face_encodings(face_crop_array_2)[0]
-    
-    
-    # Get face encodings for any faces in the uploaded image
-    unknown_face_encodings = face_recognition.face_encodings(img)
 
     face_found = False
     is_obama = False
