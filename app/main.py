@@ -31,7 +31,7 @@ def upload_image():
         if all(rules):
         #if file and allowed_file(file.filename) and file2 and allowed_file(file2.filename):
             # The image file seems valid! Detect faces and return the result.
-            return detect_faces_in_image(file)
+            return detect_faces_in_image(file, file2)
 
     # If no valid image file was uploaded, show the file upload form:
     return '''
