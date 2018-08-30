@@ -1,6 +1,7 @@
 # This is a sample Dockerfile you can modify to deploy your own app based on face_recognition
 
-FROM python:3.6-slim-stretch
+#FROM python:3.6-slim-stretch
+FROM tiangolo/uwsgi-nginx-flask:python3.6
 
 RUN apt-get -y update
 RUN apt-get install -y --fix-missing \
