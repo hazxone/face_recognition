@@ -26,8 +26,8 @@ def upload_image():
 
         if file.filename == '' and file2.filename == '':
             return redirect(request.url)
-        
-        rules = [file == True, allowed_file(file.filename) = True, file2 == True, allowed_file(file2.filename) == True]
+
+        rules = [file == True, allowed_file(file.filename) == True, file2 == True, allowed_file(file2.filename) == True]
         if all(rules):
         #if file and allowed_file(file.filename) and file2 and allowed_file(file2.filename):
             # The image file seems valid! Detect faces and return the result.
@@ -49,10 +49,10 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     # Load the uploaded image file
     img_1 = face_recognition.load_image_file(file_stream_1)
     img_2 = face_recognition.load_image_file(file_stream_2)
-    
+
     face_locations_1 = face_recognition.face_locations(img_1)
     face_locations_2 = face_recognition.face_locations(img_2)
-    
+
     top_1, right_1, bottom_1, left_1 = face_location_1[0]
     top_2, right_2, bottom_2, left_2 = face_location_2[0]
 
@@ -66,12 +66,12 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     user_id = uuid.uuid4() # this could be incremental or even a uuid
     unique_id = "%s_%d" % (user_id, epoch)
     print(unique_id)
-    
+
     #pil_image_1 = Image.fromarray(face_crop_1)
     #pil_image_2 = Image.fromarray(face_crop_2)
     #pil_image_1.save(unique_id + '_1.jpg')
     #pil_image_2.save(unique_id + '_2.jpg')
-                     
+
     face_found = False
     is_match = False
 
