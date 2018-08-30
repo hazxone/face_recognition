@@ -50,5 +50,5 @@ RUN cd /root/face_recognition && \
     pip3 install -r requirements.txt && \
     python3 setup.py install
 
-CMD cd /root/face_recognition/examples && \
-    python3 web_service_example.py
+#CMD cd /root/face_recognition/examples && \
+#    python3 web_service_example.py
