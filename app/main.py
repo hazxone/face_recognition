@@ -51,8 +51,8 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     img_1 = face_recognition.load_image_file(file_stream_1)
     img_2 = face_recognition.load_image_file(file_stream_2)
 
-    face_locations_1 = face_recognition.face_locations(img_1)
-    face_locations_2 = face_recognition.face_locations(img_2)
+    face_location_1 = face_recognition.face_locations(img_1)
+    face_location_2 = face_recognition.face_locations(img_2)
 
     top_1, right_1, bottom_1, left_1 = face_location_1[0]
     top_2, right_2, bottom_2, left_2 = face_location_2[0]
