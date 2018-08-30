@@ -102,7 +102,7 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     # Return the result as json
     result = {
         "face_found_in_image": face_found,
-        "Status": is_obama
+        "Status": is_match
     }
     return jsonify(result)
 
