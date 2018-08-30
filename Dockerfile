@@ -42,6 +42,9 @@ RUN cd ~ && \
 #     pip3 install -r requirements.txt
 # RUN whatever_command_you_run_to_start_your_app
 
+RUN cd ~ && \
+    mkdir -p app
+COPY main.py ./app
 COPY . /root/face_recognition
 RUN cd /root/face_recognition && \
     pip3 install -r requirements.txt && \
