@@ -17,6 +17,8 @@
 # $ pip3 install flask
 
 import face_recognition
+import time
+import uuid
 from flask import Flask, jsonify, request, redirect
 
 # You can change this to any folder on your system
@@ -69,22 +71,28 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     face_locations_1 = face_recognition.face_locations(img_1)
     face_locations_2 = face_recognition.face_locations(img_2)
     
-    top_1, right_1, bottom_1, left_1 = face_location_1
-    top_2, right_2, bottom_2, left_2 = face_location_2
-    
+    top_1, right_1, bottom_1, left_1 = face_location_1[0]
+    top_2, right_2, bottom_2, left_2 = face_location_2[0]
+
     face_crop_1 = img_1[top_1:bottom_1, left_1:right_1]
-    face_crop_array_1 = Image.fromarray(face_crop_1)
-    
     face_crop_2 = img_2[top_2:bottom_2, left_2:right_2]
-    face_crop_array_2 = Image.fromarray(face_crop_2)
+
+    face_1_enc = face_recognition.face_encodings(face_crop_1)[0]
+    face_2_enc = face_recognition.face_encodings(face_crop_2)[0]
+
+    epoch = time.time()
+    user_id = uuid.uuid4() # this could be incremental or even a uuid
+    unique_id = "%s_%d" % (user_id, epoch)
     
-    face_1_enc = face_recognition.face_encodings(face_crop_array_1)[0]
-    face_2_enc = face_recognition.face_encodings(face_crop_array_2)[0]
-
+    pil_image_1 = Image.fromarray(face_crop_1)
+    pil_image_2 = Image.fromarray(face_crop_2)
+    pil_image_1.save(unique_id + '_1.jpg')
+    pil_image_2.save(unique_id + '_2.jpg')
+                     
     face_found = False
-    is_obama = False
+    is_match = False
 
-    if len(unknown_face_encodings) > 0:
+    if len(face_2_enc) > 0:
         face_found = True
         # See if the first face in the uploaded image matches the known face of Obama
         match_results = face_recognition.compare_faces([face_1_enc], face_2_enc)
