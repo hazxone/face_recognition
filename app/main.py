@@ -36,8 +36,8 @@ def upload_image():
     # If no valid image file was uploaded, show the file upload form:
     return '''
     <!doctype html>
-    <title>Is this a picture of Obama?</title>
-    <h1>Upload a picture and see if it's a picture of Obama!</h1>
+    <title>Alphaface</title>
+    <h1>Upload pictures</h1>
     <form method="POST" enctype="multipart/form-data">
       <input type="file" name="file">
       <input type="file" name="file2">
@@ -66,7 +66,7 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     epoch = time.time()
     user_id = uuid.uuid4() # this could be incremental or even a uuid
     unique_id = "%s_%d" % (user_id, epoch)
-    print(unique_id)
+    #print(unique_id)
 
     #pil_image_1 = Image.fromarray(face_crop_1)
     #pil_image_2 = Image.fromarray(face_crop_2)
@@ -86,7 +86,8 @@ def detect_faces_in_image(file_stream_1, file_stream_2):
     # Return the result as json
     result = {
         "face_found_in_image": face_found,
-        "Status": is_match
+        "Status": is_match,
+        "UID": unique_id
     }
     return jsonify(result)
 
