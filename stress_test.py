@@ -5,13 +5,13 @@ import time
 
 # initialize the Keras REST API endpoint URL along with the input
 # image path
-KERAS_REST_API_URL = "http://149.28.147.129:4000"
+KERAS_REST_API_URL = "http://198.13.53.125:4000"
 IMAGE_PATH = "o1.jpg"
 IMAGE_PATH_2 = "o2.jpg"
 
 # initialize the number of requests for the stress test along with
 # the sleep amount between requests
-NUM_REQUESTS = 2
+NUM_REQUESTS = 10
 SLEEP_COUNT = 0.05
 
 def call_predict_endpoint(n):
@@ -22,7 +22,7 @@ def call_predict_endpoint(n):
 
 	# submit the request
 	r = requests.post(KERAS_REST_API_URL, files=payload).json()
-	#print(r)
+	print(r)
 	#ensure the request was sucessful
 	if 'Status' in r:
 	#if r["{'Status': True, 'face_found_in_image': True}"]:
@@ -42,4 +42,4 @@ for i in range(0, NUM_REQUESTS):
 
 # insert a long sleep so we can wait until the server is finished
 # processing the images
-time.sleep(30)
+time.sleep(15)
