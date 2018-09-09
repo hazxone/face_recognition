@@ -4,6 +4,8 @@ docs/
 requirements_dev.txt
 requirements_docs.txt
 stress_test.py
+app/flask_monitoringdashboard.db
+app/*.p
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
