@@ -1,3 +1,10 @@
+example/
+tests/
+docs/
+requirements_dev.txt
+requirements_docs.txt
+stress_test.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
