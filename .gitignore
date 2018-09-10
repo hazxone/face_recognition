@@ -1,3 +1,13 @@
+example/
+tests/
+docs/
+requirements_dev.txt
+requirements_docs.txt
+stress_test.py
+app/flask_monitoringdashboard.db
+app/*.p
+Dockerfile_bak
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
