@@ -25,7 +25,7 @@ setup(
     name='face_recognition',
     version='1.2.3',
     description="Recognize faces from Python or from the command line",
-    long_description=readme + '\n\n' + history,
+    long_description='Face Recognition',
     author="Adam Geitgey",
     author_email='ageitgey@gmail.com',
     url='https://github.com/ageitgey/face_recognition',
