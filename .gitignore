@@ -6,7 +6,9 @@ requirements_docs.txt
 stress_test.py
 app/flask_monitoringdashboard.db
 app/*.p
+app/L6SOsgE6HT.py
 Dockerfile_bak
+app/data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
