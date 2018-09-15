@@ -10,6 +10,8 @@ import os
 import numpy as np
 from data.L6SOsgE6HT import users
 import database_
+from functools import lru_cache
+#import flask_profiler
 
 from flask_httpauth import HTTPBasicAuth
 import flask_monitoringdashboard as dashboard
@@ -22,8 +24,35 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app = Flask(__name__)
 dashboard.config.init_from(file='config.cfg')
 dashboard.bind(app)
+#app.config["DEBU"] = True #flask profiler
+
+# You need to declare necessary configuration to initialize #flask profiler
+# flask-profiler as follows:
+# app.config["flask_profiler"] = {
+#     "enabled": app.config["DEBU"],
+#     "storage": {
+#         "engine": "sqlite"
+#     },
+#     "basicAuth":{
+#         "enabled": True,
+#         "username": "admin",
+#         "password": "admin"
+#     },
+#     "ignore": [
+# 	    "^/static/.*"
+# 	]
+# }
 
 pickle_name = "blank.p"
+
+@lru_cache(maxsize=4)
+def load_pickle(pickle_name):
+    if os.path.isfile(pickle_name):
+        with open(pickle_name, "rb") as f:
+            data = pickle.load(f)
+    else:
+        data = {}
+    return data
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -85,10 +114,8 @@ def register_image():
 
         image_1 = request.files['image_1']
         name = request.form['name']
-        #company = auth.username()
         pickle_name = "data/" +company + ".p"
         overwrite = True
-        #unique_id = uuid.uuid4()
 
         if overwrite == request.form['overwrite']:
             overwrite = False
@@ -96,11 +123,12 @@ def register_image():
         if image_1.filename == '':
             return redirect(request.url)
 
-        if os.path.isfile(pickle_name):
-            with open(pickle_name, "rb") as f:
-                data = pickle.load(f)
-        else:
-            data = {}
+        data = load_pickle(pickle_name)
+        # if os.path.isfile(pickle_name):
+        #     with open(pickle_name, "rb") as f:
+        #         data = pickle.load(f)
+        # else:
+        #     data = {}
 
         encoding = load_crop_encode(image_1)
 
@@ -119,7 +147,7 @@ def register_image():
         with open(pickle_name, 'wb') as f:
             pickle.dump(data, f)
 
-        result = { "Status" : "Successfully Add New Entry", "UID": unique_id}
+        result = { "Status" : "Successfully Add New Entry", "UUID": unique_id}
         database_.store_sqlite(company, unique_id, "register", result)
         return jsonify(result)
     result = {"Status" : "Error", "Message" : "No Entry Added to Database"}
@@ -138,17 +166,17 @@ def verify_image():
             return redirect(request.url)
 
         image_1 = request.files['image_1']
-        #company = auth.username()
         pickle_name = "data/" + company + ".p"
 
         if image_1.filename == '':
             return redirect(request.url)
 
-        if os.path.isfile(pickle_name):
-            with open(pickle_name, "rb") as f:
-                data = pickle.load(f)
-        else:
-            data = {}
+        # if os.path.isfile(pickle_name):
+        #     with open(pickle_name, "rb") as f:
+        #         data = pickle.load(f)
+        # else:
+        #     data = {}
+        data = load_pickle(pickle_name)
 
         face_names = list(data.keys())
         face_encodings = np.array(list(data.values()))
@@ -175,7 +203,7 @@ def verify_image():
         result = {
             "Identity": json_name,
             "Status": recognize,
-            "UID": unique_id
+            "UUID": unique_id
         }
         output = {"Identity": json_name, "Status": recognize,}
         database_.store_sqlite(company, unique_id, "verify", output)
@@ -222,11 +250,13 @@ def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id):
     # Return the result as json
     result = {
         "Status": is_match,
-        "UID": unique_id
+        "UUID": unique_id
     }
     output = {"Status": is_match}
     database_.store_sqlite(company, unique_id, "compare", output)
     return jsonify(result)
+
+#flask_profiler.init_app(app) #flask profiler
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)

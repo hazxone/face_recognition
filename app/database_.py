@@ -1,6 +1,8 @@
 import minidb
 import time
 
+#https://github.com/thp/minidb
+
 def store_sqlite(company, uuid, endpoint, status):
     db = minidb.Store('data/Apicall.db', debug=True)
 
