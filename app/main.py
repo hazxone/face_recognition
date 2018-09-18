@@ -68,7 +68,7 @@ def get_password(username):
 def unauthorized():
     return make_response(jsonify({'Error':'Unauthorized Access'}), 403)
 
-@app.route('/compare', methods=['GET', 'POST'])
+@app.route('/compare', methods=['POST'])
 @auth.login_required
 def compare():
     company = auth.username()
@@ -80,12 +80,16 @@ def compare():
 
         image_1 = request.files['image_1']
         image_2 = request.files['image_2']
+        if 'image_3' in request.files:
+            image_3 = request.files['image_3']
+        else:
+            image_3 = None
 
         if image_1.filename == '' and image_2.filename == '':
             return redirect(request.url)
 
         if image_1 and allowed_file(image_1.filename) and image_2 and allowed_file(image_2.filename):
-            return detect_faces_in_image(image_1, image_2, company, unique_id)
+            return detect_faces_in_image(image_1, image_2, company, unique_id, image_3)
 
     # If no valid image file was uploaded, show the file upload form:
     result = {"Status" : "Data Handling Error"}
@@ -102,7 +106,7 @@ def compare():
     # </form>
     # '''
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['POST'])
 @auth.login_required
 def register_image():
     # Check if a valid image file was uploaded
@@ -155,7 +159,7 @@ def register_image():
     return jsonify(result)
 
 
-@app.route('/verify', methods=['GET', 'POST'])
+@app.route('/verify', methods=['POST'])
 @auth.login_required
 def verify_image():
     company = auth.username()
@@ -216,20 +220,20 @@ def load_crop_encode(file):
     img_lce = face_recognition.load_image_file(file)
     face_location_lce = face_recognition.face_locations(img_lce)
     top_lce, right_lce, bottom_lce, left_lce = face_location_lce[0]
-    #pad_y = int((bottom_lce - top_lce)*0.1)
-    #pad_x = int((right_lce - left_lce)*0.1)
-    #face_crop_lce = img_lce[(top_lce-pad_y):(bottom_lce+pad_y), (left_lce-pad_x):(right_lce+pad_x)]
     face_crop_lce = img_lce[(top_lce):(bottom_lce), (left_lce):(right_lce)]
     encoding_lce = face_recognition.face_encodings(face_crop_lce)[0]
     return encoding_lce
 
-def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id):
+
+def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id, file_stream_3 = None):
     # Load the uploaded image file
     face_1_enc = load_crop_encode(file_stream_1)
     face_2_enc = load_crop_encode(file_stream_2)
+    if file_stream_3:
+        face_3_enc = load_crop_encode(file_stream_3)
 
     epoch = time.time()
-    unique_id = uuid.uuid4() # this could be incremental or even a uuid
+    unique_id = uuid.uuid4()
     unique_id = "%s_%d" % (unique_id, epoch)
 
     #pil_image_1 = Image.fromarray(face_crop_1)
@@ -240,11 +244,16 @@ def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id):
     face_found = False
     is_match = False
 
-    if len(face_2_enc) > 0 and len(face_1_enc) > 0:
+    if len(face_2_enc) > 0 and len(face_1_enc) > 0 and file_stream_3 == None:
         face_found = True
         # See if the first face in the uploaded image matches the known face
         match_results = face_recognition.compare_faces([face_1_enc], face_2_enc)
         if match_results[0]:
+            is_match = True
+    else:
+        match_results_1 = face_recognition.compare_faces([face_1_enc], face_2_enc)
+        match_results_2 = face_recognition.compare_faces([face_1_enc], face_3_enc)
+        if match_results_1[0] and match_results_2[0]:
             is_match = True
 
     # Return the result as json
@@ -259,4 +268,4 @@ def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id):
 #flask_profiler.init_app(app) #flask profiler
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=80)
