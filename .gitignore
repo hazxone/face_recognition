@@ -9,6 +9,7 @@ app/*.p
 app/L6SOsgE6HT.py
 Dockerfile_bak
 app/data/
+test/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

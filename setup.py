@@ -13,7 +13,8 @@ requirements = [
     'uuid',
     'flask',
     'flask_monitoringdashboard',
-    'flask_httpauth'
+    'flask_httpauth',
+    'scikit-learn'
 ]
 
 test_requirements = [

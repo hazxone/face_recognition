@@ -11,7 +11,10 @@ import numpy as np
 from data.L6SOsgE6HT import users
 import database_
 from functools import lru_cache
+#from knn import predict
 #import flask_profiler
+# from werkzeug import secure_filename
+# filename = secure_filename(file.filename)
 
 from flask_httpauth import HTTPBasicAuth
 import flask_monitoringdashboard as dashboard
@@ -121,18 +124,14 @@ def register_image():
         pickle_name = "data/" +company + ".p"
         overwrite = True
 
-        if overwrite == request.form['overwrite']:
-            overwrite = False
+        if 'overwrite' in request.form:
+            if request.form['overwrite'] == False:
+                overwrite = False
 
         if image_1.filename == '':
             return redirect(request.url)
 
         data = load_pickle(pickle_name)
-        # if os.path.isfile(pickle_name):
-        #     with open(pickle_name, "rb") as f:
-        #         data = pickle.load(f)
-        # else:
-        #     data = {}
 
         encoding = load_crop_encode(image_1)
 
@@ -158,6 +157,37 @@ def register_image():
     database_.store_sqlite(company, unique_id, "register", result)
     return jsonify(result)
 
+@app.route('/register_multiple', methods=['POST'])
+#@auth.login_required
+def register_multiple_image():
+    company = request.form['company']
+    unique_id = uuid.uuid4()
+    if request.method == 'POST':
+        name = request.form['name']
+        app.config['UPLOAD_FOLDER'] = 'data/'+company+'/'+name+'/'
+        uploaded_files = request.files.getlist("file[]")
+        print(uploaded_files)
+        #filenames = []
+        for filename, file in request.files.iteritems():
+            name = request.FILES[filename].name
+            print(name)
+        for index, file in enumerate(uploaded_files):
+            # Check if the file is one of the allowed types/extensions
+            if file and allowed_file(file.filename):
+                # Make the filename safe, remove unsupported chars
+                ##filename = secure_filename(file.filename)
+                # Move the file form the temporal folder to the upload
+                # folder we setup
+                print(file)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                # Save the filename into a list, we'll use it later
+                #filenames.append(filename)
+                # Redirect the user to the uploaded_file route, which
+                # will basicaly show on the browser the uploaded file
+        # Load an html page with a link to each uploaded file
+        #return render_template('upload.html', filenames=filenames)
+    result = {"Status" : "Error", "Message" : "No Entry Added to Database"}
+    return jsonify(result)
 
 @app.route('/verify', methods=['POST'])
 @auth.login_required
@@ -175,11 +205,6 @@ def verify_image():
         if image_1.filename == '':
             return redirect(request.url)
 
-        # if os.path.isfile(pickle_name):
-        #     with open(pickle_name, "rb") as f:
-        #         data = pickle.load(f)
-        # else:
-        #     data = {}
         data = load_pickle(pickle_name)
 
         face_names = list(data.keys())
@@ -187,7 +212,7 @@ def verify_image():
 
         unknown_encoding = load_crop_encode(image_1)
 
-        result = face_recognition.compare_faces(face_encodings, unknown_encoding)
+        result = face_recognition.compare_faces(face_encodings, unknown_encoding, tolerance=0.5)
 
         verify = (Counter(result))
         if (verify[True]) == 1:
@@ -214,6 +239,102 @@ def verify_image():
         return jsonify(result)
     result = {"Status" : "Data Handling Error"}
     database_.store_sqlite(company, unique_id, "verify", result)
+    return jsonify(result)
+
+@app.route('/verify_acc', methods=['POST'])
+@auth.login_required
+def verify__knn():
+    company = auth.username()
+    unique_id = uuid.uuid4()
+    # Check if a valid image file was uploaded
+    if request.method == 'POST':
+        if 'image_1' not in request.files:
+            return redirect(request.url)
+
+        image_1 = request.files['image_1']
+        pickle_name = "data/" + company + ".p"
+
+        if image_1.filename == '':
+            return redirect(request.url)
+
+        knn_clf = None
+        model_path="data/"+company+"_knn.clf"
+        distance_threshold=0.5
+
+        X_img_path = image_1
+        if knn_clf is None:
+            with open(model_path, 'rb') as f:
+                knn_clf = pickle.load(f)
+
+        # Load image file and find face locations
+        X_img = face_recognition.load_image_file(X_img_path)
+        X_face_locations = face_recognition.face_locations(X_img)
+
+        # If no faces are found in the image, return an empty result.
+        if len(X_face_locations) == 0:
+            return []
+
+        # Find encodings for faces in the test iamge
+        faces_encodings = face_recognition.face_encodings(X_img, known_face_locations=X_face_locations)
+
+        # Use the KNN model to find the best matches for the test face
+        closest_distances = knn_clf.kneighbors(faces_encodings, n_neighbors=1)
+        are_matches = [closest_distances[0][i][0] <= distance_threshold for i in range(len(X_face_locations))]
+
+        # Predict classes and remove classifications that aren't within the threshold
+        #return [(pred, loc) if rec else ("unknown", loc) for pred, loc, rec in zip(knn_clf.predict(faces_encodings), X_face_locations, are_matches)]
+        predictions = [(pred) if rec else ("Unknown") for pred, rec in zip(knn_clf.predict(faces_encodings), are_matches)]
+
+        result = {"Identity": predictions[0]}
+
+        database_.store_sqlite(company, unique_id, "verify_acc", result)
+        return jsonify(result)
+
+@app.route('/verify_svm', methods=['POST'])
+@auth.login_required
+def verify__svm():
+    company = auth.username()
+    unique_id = uuid.uuid4()
+    start_time = time.time()
+    # Check if a valid image file was uploaded
+    if request.method == 'POST':
+        if 'image_1' not in request.files:
+            return redirect(request.url)
+
+        image_1 = request.files['image_1']
+        pickle_name = "data/" + company + ".p"
+
+        if image_1.filename == '':
+            return redirect(request.url)
+
+        model_path="data/"+company+"_svm.p"
+
+        X_img_path = image_1
+
+        # Load image file and find face locations
+        X_img = face_recognition.load_image_file(X_img_path)
+        X_face_locations = face_recognition.face_locations(X_img)
+
+        if len(X_face_locations) == 0:
+            return []
+
+        faces_encodings = face_recognition.face_encodings(X_img, known_face_locations=X_face_locations)
+
+        # If no faces are found in the image, return an empty result.
+        with open(model_path, 'rb') as infile:
+            (model, class_names) = pickle.load(infile)
+
+        predictions = model.predict_proba(faces_encodings)
+        best_class_indices = np.argmax(predictions, axis=1)
+        best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices] #: '%.3f' % best_class_probabilities[0]
+        if best_class_probabilities[0] > 0.65:
+            result = {"Status" : "Success", "Identity" : class_names[best_class_indices[0]] }
+        else:
+            result = {"Status" : "Failed", "Identity" : "Unknown"}
+        database_.store_sqlite(company, unique_id, "verify_svm", result)
+        return jsonify(result)
+    result = {"Status" : "Data Handling Error"}
+    database_.store_sqlite(company, unique_id, "verify_svm", result)
     return jsonify(result)
 
 def load_crop_encode(file):
@@ -247,12 +368,12 @@ def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id, file
     if len(face_2_enc) > 0 and len(face_1_enc) > 0 and file_stream_3 == None:
         face_found = True
         # See if the first face in the uploaded image matches the known face
-        match_results = face_recognition.compare_faces([face_1_enc], face_2_enc)
+        match_results = face_recognition.compare_faces([face_1_enc], face_2_enc, tolerance=0.5)
         if match_results[0]:
             is_match = True
     else:
-        match_results_1 = face_recognition.compare_faces([face_1_enc], face_2_enc)
-        match_results_2 = face_recognition.compare_faces([face_1_enc], face_3_enc)
+        match_results_1 = face_recognition.compare_faces([face_1_enc], face_2_enc, tolerance=0.5)
+        match_results_2 = face_recognition.compare_faces([face_1_enc], face_3_enc, tolerance=0.5)
         if match_results_1[0] and match_results_2[0]:
             is_match = True
 
@@ -268,4 +389,4 @@ def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id, file
 #flask_profiler.init_app(app) #flask profiler
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80)
+    app.run(host='0.0.0.0', port=80, debug=True)

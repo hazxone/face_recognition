@@ -8,3 +8,4 @@ uuid
 flask
 flask_monitoringdashboard
 flask_httpauth
+scikit-learn
