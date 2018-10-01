@@ -11,6 +11,7 @@ import numpy as np
 from data.L6SOsgE6HT import users
 import database_
 from functools import lru_cache
+from sklearn.externals import joblib
 #from knn import predict
 #import flask_profiler
 # from werkzeug import secure_filename
@@ -322,13 +323,15 @@ def verify__svm():
 
         # If no faces are found in the image, return an empty result.
         with open(model_path, 'rb') as infile:
-            (model, class_names) = pickle.load(infile)
+            (model, class_names) = joblib.load(infile)
 
         predictions = model.predict_proba(faces_encodings)
         best_class_indices = np.argmax(predictions, axis=1)
         best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices] #: '%.3f' % best_class_probabilities[0]
         if best_class_probabilities[0] > 0.65:
-            result = {"Status" : "Success", "Identity" : class_names[best_class_indices[0]] }
+            endtime = time.time()
+            Time_taken = endtime - start_time
+            result = {"Status" : "Success", "Identity" : class_names[best_class_indices[0]], "Time" : Time_taken}
         else:
             result = {"Status" : "Failed", "Identity" : "Unknown"}
         database_.store_sqlite(company, unique_id, "verify_svm", result)
