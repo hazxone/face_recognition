@@ -14,7 +14,8 @@ requirements = [
     'flask',
     'flask_monitoringdashboard',
     'flask_httpauth',
-    'scikit-learn'
+    'scikit-learn',
+    'opencv-python'
 ]
 
 test_requirements = [

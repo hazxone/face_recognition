@@ -10,6 +10,8 @@ app/L6SOsgE6HT.py
 Dockerfile_bak
 app/data/
 test/
+app/images/*
+app/pickle/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

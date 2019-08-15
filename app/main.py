@@ -12,6 +12,8 @@ from data.L6SOsgE6HT import users
 import database_
 from functools import lru_cache
 from sklearn.externals import joblib
+import cv2
+
 #from knn import predict
 #import flask_profiler
 # from werkzeug import secure_filename
@@ -25,7 +27,7 @@ auth = HTTPBasicAuth()
 # You can change this to any folder on your system
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 dashboard.config.init_from(file='config.cfg')
 dashboard.bind(app)
 #app.config["DEBU"] = True #flask profiler
@@ -134,7 +136,7 @@ def register_image():
 
         data = load_pickle(pickle_name)
 
-        encoding = load_crop_encode(image_1)
+        encoding = load_crop_encode(image_1,company,unique_id)
 
         list_names = list(data.keys())
 
@@ -159,7 +161,7 @@ def register_image():
     return jsonify(result)
 
 @app.route('/register_multiple', methods=['POST'])
-#@auth.login_required
+@auth.login_required
 def register_multiple_image():
     company = request.form['company']
     unique_id = uuid.uuid4()
@@ -201,6 +203,7 @@ def verify_image():
             return redirect(request.url)
 
         image_1 = request.files['image_1']
+
         pickle_name = "data/" + company + ".p"
 
         if image_1.filename == '':
@@ -211,33 +214,38 @@ def verify_image():
         face_names = list(data.keys())
         face_encodings = np.array(list(data.values()))
 
-        unknown_encoding = load_crop_encode(image_1)
+        unknown_encoding = load_crop_encode(image_1,company,unique_id)
 
-        result = face_recognition.compare_faces(face_encodings, unknown_encoding, tolerance=0.5)
+        if any(unknown_encoding):
+            result = face_recognition.compare_faces(face_encodings, unknown_encoding, tolerance=0.5)
 
-        verify = (Counter(result))
-        if (verify[True]) == 1:
-        	for face_names, result in zip(face_names, result) :
-        		if result == True:
-        			recognize = "Match Found"
-        			json_name = face_names
+            verify = (Counter(result))
+            if (verify[True]) == 1:
+            	for face_names, result in zip(face_names, result) :
+            		if result == True:
+            			recognize = "Match Found"
+            			json_name = face_names
 
-        elif (verify[True]) == 0:
-        	json_name = "Unknown"
-        	recognize = "No Match Found"
+            elif (verify[True]) == 0:
+            	json_name = "Unknown"
+            	recognize = "No Match Found"
+
+            else:
+                json_name = "Found more than 1 face matched"
+                recognize = "Failed"
+
+            result = {
+                "Identity": json_name,
+                "Status": recognize,
+                "UUID": unique_id
+            }
+            output = {"Identity": json_name, "Status": recognize,}
+            database_.store_sqlite(company, unique_id, "verify", output)
+            return jsonify(result)
 
         else:
-            json_name = "Found more than 1 face matched"
-            recognize = "Failed"
+            return(jsonify({"Identity" : "No Face Found"}))
 
-        result = {
-            "Identity": json_name,
-            "Status": recognize,
-            "UUID": unique_id
-        }
-        output = {"Identity": json_name, "Status": recognize,}
-        database_.store_sqlite(company, unique_id, "verify", output)
-        return jsonify(result)
     result = {"Status" : "Data Handling Error"}
     database_.store_sqlite(company, unique_id, "verify", result)
     return jsonify(result)
@@ -310,43 +318,76 @@ def verify__svm():
 
         model_path="data/"+company+"_svm.p"
 
-        X_img_path = image_1
+        #X_img_path = image_1
 
         # Load image file and find face locations
-        X_img = face_recognition.load_image_file(X_img_path)
-        X_face_locations = face_recognition.face_locations(X_img)
+        unknown_encoding = load_crop_encode(image_1,company,unique_id)
+        #X_img = face_recognition.load_image_file(X_img_path)
+        #X_face_locations = face_recognition.face_locations(X_img)
 
-        if len(X_face_locations) == 0:
-            return []
+        # if len(X_face_locations) == 0:
+        #     return []
 
-        faces_encodings = face_recognition.face_encodings(X_img, known_face_locations=X_face_locations)
+        #unknown_encodings = face_recognition.face_encodings(X_img, known_face_locations=X_face_locations)
 
         # If no faces are found in the image, return an empty result.
-        with open(model_path, 'rb') as infile:
-            (model, class_names) = joblib.load(infile)
+        if any(unknown_encoding):
+            with open(model_path, 'rb') as infile:
+                (model, class_names) = joblib.load(infile)
 
-        predictions = model.predict_proba(faces_encodings)
-        best_class_indices = np.argmax(predictions, axis=1)
-        best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices] #: '%.3f' % best_class_probabilities[0]
-        if best_class_probabilities[0] > 0.65:
-            endtime = time.time()
-            Time_taken = endtime - start_time
-            result = {"Status" : "Success", "Identity" : class_names[best_class_indices[0]], "Time" : Time_taken}
+            predictions = model.predict_proba(unknown_encoding.reshape(1,-1))
+            best_class_indices = np.argmax(predictions, axis=1)
+            best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices] #: '%.3f' % best_class_probabilities[0]
+            if best_class_probabilities[0] > 0.50:
+                endtime = time.time()
+                Time_taken = endtime - start_time
+                result = {"Status" : "Success", "Identity" : class_names[best_class_indices[0]], "Time" : Time_taken}
+            else:
+                result = {"Status" : "Failed", "Identity" : "Unknown"}
+            database_.store_sqlite(company, unique_id, "verify_svm", result)
+            return jsonify(result)
+
         else:
-            result = {"Status" : "Failed", "Identity" : "Unknown"}
-        database_.store_sqlite(company, unique_id, "verify_svm", result)
-        return jsonify(result)
+            return(jsonify({"Identity" : "No Face Found"}))
+
     result = {"Status" : "Data Handling Error"}
     database_.store_sqlite(company, unique_id, "verify_svm", result)
     return jsonify(result)
 
-def load_crop_encode(file):
+@app.route('/delete', methods=['POST'])
+@auth.login_required
+def delete_user():
+    company = auth.username()
+    unique_id = uuid.uuid4()
+    if request.method == 'POST':
+        if 'name' not in request.form:
+            return redirect(request.url)
+
+        name = request.form['name']
+        pickle_name = "data/" +company + ".p"
+
+    data = load_pickle(pickle_name)
+
+    try:
+        del data[name]
+        return jsonify({"Status" : "Successfully Deleted"})
+    except KeyError:
+        return jsonify({"Status" : "{user} doesn't exist in db".format(user=name)})
+
+def load_crop_encode(file,company,unique_id):
     img_lce = face_recognition.load_image_file(file)
     face_location_lce = face_recognition.face_locations(img_lce)
-    top_lce, right_lce, bottom_lce, left_lce = face_location_lce[0]
-    face_crop_lce = img_lce[(top_lce):(bottom_lce), (left_lce):(right_lce)]
-    encoding_lce = face_recognition.face_encodings(face_crop_lce)[0]
-    return encoding_lce
+    print("face_location_lce", face_location_lce)
+    if face_location_lce:
+        top_lce, right_lce, bottom_lce, left_lce = face_location_lce[0]
+        face_crop_lce = img_lce[(top_lce):(bottom_lce), (left_lce):(right_lce)]
+        encoding_lce = face_recognition.face_encodings(face_crop_lce)[0]
+        face_save = cv2.cvtColor(face_crop_lce, cv2.COLOR_BGR2RGB)
+        cv2.imwrite('data/photos/'+company+str(unique_id)+'.jpg', face_save)
+
+        return encoding_lce
+    else:
+        return []
 
 
 def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id, file_stream_3 = None):
@@ -390,6 +431,11 @@ def detect_faces_in_image(file_stream_1, file_stream_2, company, unique_id, file
     return jsonify(result)
 
 #flask_profiler.init_app(app) #flask profiler
+
+@app.route('/', methods=['GET'])
+def main_():
+    msg = "Hello Aerodyne"
+    return msg
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)
