@@ -36,8 +36,13 @@ def check_folder(folder_path):
     Arguments:
         folder_path {str} -- Path to folder
     """
+    created = False
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
+        created = True
+        return created
+    else:
+        return created
 
 def find_face(img):
     im = fr.load_image_file(img)
