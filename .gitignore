@@ -12,6 +12,7 @@ app/data/
 test/
 app/images/*
 app/pickle/*
+app/raw/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

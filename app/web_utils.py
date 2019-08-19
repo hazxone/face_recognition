@@ -49,13 +49,36 @@ def find_face(img):
     return fr.face_locations(im, number_of_times_to_upsample=2)[0], im
 
 def crop_face(im, face_bbox):
+    im_height, im_width, _ = im.shape
     top, right, bottom, left = face_bbox
+    height = abs(top - bottom)
+    pad = int(0.1 * height)
+    if left - pad < 0:
+        left = left
+    else:
+        left = left - pad
+
+    if right + pad > im_width:
+        right = im_width
+    else:
+        right = right + pad
+
+    if top - pad < 0:
+        top = 0
+    else:
+        top = top - pad
+
+    if bottom + pad > im_height:
+        bottom = im_height
+    else:
+        bottom = bottom + pad
+
     crop = im[top:bottom, left:right]
     return crop
 
 def save_image(img, save_path):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img_rgb = cv2.resize(img_rgb, (200, 200))
+    # img_rgb = cv2.resize(img_rgb, (250, 250))
     cv2.imwrite(save_path, img_rgb)
 
 def gen_uuid():
@@ -101,6 +124,7 @@ def create_encodings():
                     # Add face encoding for current image to the training set
                     X.append(fr.face_encodings(image, known_face_locations=face_bounding_boxes)[0])
                     y.append(ic)
+                    print(img_path, ic)
 
     X = np.asarray(X)
     print("this", X.shape)
@@ -117,7 +141,7 @@ def append_one_embedding(ic, emb, initial=False):
         print("Xold", X_old.shape)
         emb = np.asarray(emb)
         print("emb", emb.shape)
-        X = np.concatenate((X_old, emb), axis=0)
+        X = np.concatenate((X_old, emb.reshape(1,-1)), axis=0)
         y = np.append(y_old, ic)
         np.savez(os.path.join('pickle','X_y'), X=X, y=y)
 
@@ -136,7 +160,7 @@ def train_svm(class_list):
     print("shape x ", X.shape)
     print("shape y ", y.shape)
     # svm_object = SVC(kernel='linear', probability=True)
-    svm_object = SVC(kernel='rbf', C=1, gamma=10, probability=True)
+    svm_object = SVC(kernel='linear', probability=True)
     svm_object.fit(X, y)
     save_pickle('medkad_svm', 'embeddings', (svm_object, class_list))
 
@@ -151,7 +175,7 @@ def predict_svm(model, unknown_encoding):
     prediction = model.predict_proba(unknown_encoding.reshape(1,-1))
     best_class_indices = np.argmax(prediction, axis=1)
     best_class_probabilities = prediction[np.arange(len(best_class_indices)), best_class_indices]
-    print(prediction, best_class_indices, best_class_probabilities)
+    print(prediction[0], best_class_indices, best_class_probabilities)
     return best_class_probabilities[0], best_class_indices[0]
 
 
