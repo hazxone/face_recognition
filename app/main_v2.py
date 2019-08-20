@@ -9,8 +9,7 @@ import uuid
 import cv2
 import os
 from web_utils import *
-from flasgger import Swagger, swag_from
-import yaml
+# from flasgger import Swagger, swag_from
 from companies_view import companies_api
 
 swagger_template = {
@@ -96,7 +95,7 @@ def predict():
         result = {"Status" : "Error", "Message" : "No Face / More than one face detected"}
         return make_response(jsonify(result), 404)
     image = crop_face(im, face_bbox)
-    image = cv2.resize(image, (300, 300))
+    image = cv2.resize(image, (250, 250))
 
     # Save image
     save_path = os.path.join('raw')

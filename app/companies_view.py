@@ -127,6 +127,13 @@ def post_ic(company_id):
     emb = fr.face_encodings(image)[0]
     append_one_embedding(ic_number, emb, initial)
 
+    # Flip image
+    image = np.fliplr(image)
+    save_path = os.path.join(ic_path, '{}.jpg'.format(gen_uuid()))
+    save_image(image, save_path) 
+    emb = fr.face_encodings(image)[0]
+    append_one_embedding(ic_number, emb, initial)
+
     result = {"Status" : "Success", "Message" : "Identity successfully added"}
     return make_response(jsonify(result), 200)
 
