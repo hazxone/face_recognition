@@ -8,9 +8,14 @@ import face_recognition as fr
 from sklearn.svm import SVC
 from sklearn.externals import joblib
 from face_recognition.face_recognition_cli import image_files_in_folder
+import dlib
 
 pickle_name = "blank.p"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+detector = dlib.get_frontal_face_detector()
+sp = dlib.shape_predictor(os.path.join('models', 'shape_predictor_5_face_landmarks.dat'))
+facerec = dlib.face_recognition_model_v1(os.path.join('models', 'dlib_face_recognition_resnet_model_v1.dat'))
 
 # Pickle file list
 # |- session.token : Latest token string
@@ -44,6 +49,31 @@ def check_folder(folder_path):
     else:
         return created
 
+def load_image_dlib(im):
+    img = np.fromfile(im, np.uint8)
+    img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img
+
+def find_face_dlib(img):
+    dets = detector(img, 2)
+    if len(dets) != 1:
+        return [9,9,9],9,9,9
+    shape = sp(img, dets[0])
+    face_chip = dlib.get_face_chip(img, shape, size=200, padding=0.35)
+
+    dets_chip = detector(face_chip, 2)
+    if len(dets_chip) != 1:
+        return [9,9,9],9,9,9
+    shape_chip = sp(face_chip, dets_chip[0])
+    face_chip_new = dlib.get_face_chip(face_chip, shape_chip)
+    # emb = facerec.compute_face_descriptor(face_chip, shape_chip)
+    return dets_chip, face_chip_new, shape_chip, face_chip
+
+def compute_emb(im, shape):
+    return np.array(facerec.compute_face_descriptor(im, shape))
+
+'''
 def find_face(img):
     im = fr.load_image_file(img)
     return fr.face_locations(im, number_of_times_to_upsample=2)[0], im
@@ -75,6 +105,8 @@ def crop_face(im, face_bbox):
 
     crop = im[top:bottom, left:right]
     return crop
+
+'''
 
 def save_image(img, save_path):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -114,15 +146,16 @@ def create_encodings():
         ic_list = os.listdir(os.path.join(base_path,company))
         for ic in ic_list:
             for img_path in image_files_in_folder(os.path.join(base_path, company, ic)):
-                image = fr.load_image_file(img_path)
-                face_bounding_boxes = fr.face_locations(image)
+                image = dlib.load_rgb_image(img_path)
+                face_bbox, im, shape, _ = find_face_dlib(image)
 
-                if len(face_bounding_boxes) != 1:
+                if len(face_bbox) != 1:
                     # If there are no people (or too many people) in a training image, skip the image.
-                    print("Image {} not suitable for training: {}".format(img_path, "Didn't find a face" if len(face_bounding_boxes) < 1 else "Found more than one face"))
+                    print("Image {} not suitable for training: {}".format(img_path, "Didn't find a face" if len(face_bbox) < 1 else "Found more than one face"))
                 else:
                     # Add face encoding for current image to the training set
-                    X.append(fr.face_encodings(image, known_face_locations=face_bounding_boxes)[0])
+                    # X.append(fr.face_encodings(image, known_face_locations=face_bounding_boxes)[0])
+                    X.append(compute_emb(im, shape))
                     y.append(ic)
                     print(img_path, ic)
 

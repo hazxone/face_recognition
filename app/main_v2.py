@@ -89,21 +89,30 @@ def predict():
         return make_response(jsonify(result), 422)
 
     # Process request
-    face_bbox, im = find_face(image)
-    print("BBOX", face_bbox)
-    if len(face_bbox) != 4:
+    img = load_image_dlib(image)
+    face_bbox, im, shape, im_large = find_face_dlib(img)
+
+    # Legacy : face_recognition
+    # face_bbox, im = find_face(image)
+
+    if len(face_bbox) != 1:
         result = {"Status" : "Error", "Message" : "No Face / More than one face detected"}
         return make_response(jsonify(result), 404)
-    image = crop_face(im, face_bbox)
-    image = cv2.resize(image, (250, 250))
+
+    # Legacy : face_recognition
+    # image = crop_face(im, face_bbox)
+    # image = cv2.resize(image, (250, 250))
 
     # Save image
     save_path = os.path.join('raw')
     check_folder(save_path)
-    save_image(image, os.path.join(save_path,'{}.jpg'.format(gen_uuid())))
+    save_image(im_large, os.path.join(save_path,'{}.jpg'.format(gen_uuid())))
 
     # Forward Pass Embedding
-    emb = fr.face_encodings(image)[0]
+    emb = compute_emb(im, shape)
+
+    # Legacy : face_recognition
+    # emb = fr.face_encodings(im)[0]
 
     model, class_list = load_svm(username)
 

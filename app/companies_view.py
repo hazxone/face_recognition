@@ -106,13 +106,20 @@ def post_ic(company_id):
     ic_number = request.form['ic_number']
 
     # Process request
-    face_bbox, im = find_face(image)
-    if len(face_bbox) != 4:
+    img = load_image_dlib(image)
+    face_bbox, im, shape, im_large = find_face_dlib(img)
+
+    # Legacy : face_recognition
+    # face_bbox, im = find_face(image)
+
+    if len(face_bbox) != 1:
         result = {"Status" : "Error", "Message" : "No Face / More than one face detected"}
         return make_response(jsonify(result), 404)
-    image = crop_face(im, face_bbox)
-    image = cv2.resize(image, (300, 300))
-    
+
+    # Legacy : face_recognition
+    # image = crop_face(im, face_bbox)
+    # image = cv2.resize(image, (250, 250))
+
     # Check companies and ic exist
     companies_path = os.path.join('images',company_id)
     check_folder(companies_path)
@@ -121,18 +128,20 @@ def post_ic(company_id):
 
     # Save image
     save_path = os.path.join(ic_path, '{}.jpg'.format(gen_uuid()))
-    save_image(image, save_path)
-    
-    # Save Embedding
-    emb = fr.face_encodings(image)[0]
+    save_image(im_large, save_path)
+
+    # Forward Pass Embedding
+    emb = compute_emb(im, shape)
     append_one_embedding(ic_number, emb, initial)
 
     # Flip image
-    image = np.fliplr(image)
+    img_flip = np.fliplr(img)
+    face_bbox_flip, im_flip, shape_flip, im_flip_large = find_face_dlib(img_flip)
+
     save_path = os.path.join(ic_path, '{}.jpg'.format(gen_uuid()))
-    save_image(image, save_path) 
-    emb = fr.face_encodings(image)[0]
-    append_one_embedding(ic_number, emb, initial)
+    save_image(im_flip_large, save_path) 
+    emb_flip = compute_emb(im_flip, shape_flip)
+    append_one_embedding(ic_number, emb_flip, initial)
 
     result = {"Status" : "Success", "Message" : "Identity successfully added"}
     return make_response(jsonify(result), 200)
