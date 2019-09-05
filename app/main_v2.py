@@ -4,7 +4,7 @@ basic_auth = HTTPBasicAuth()
 auth = HTTPTokenAuth('Bearer') 
 from werkzeug import secure_filename
 import face_recognition as fr
-from data.L6SOsgE6HT import users, tokens
+from data.L6SOsgE6HT import users, tokens, add_user
 import uuid
 import cv2
 import os
@@ -39,6 +39,21 @@ def get_password(username):
     if username in users:
         return users.get(username)
     return None
+
+@app.route('/')
+def main_route():
+    return 'The app working properly'
+
+@app.route('/user/add', methods=['POST'])
+@basic_auth.login_required
+def add_user_view():
+    user_name = request.form['username']
+    user_pass = request.form['password']
+    users = add_user(user_name, user_pass)
+    save_pickle('session', 'users.cred', users)
+    result = {"Status" : "Success", "Message" : "User Added"}
+    return make_response(jsonify(result), 200)
+
 
 # Token dictionary is reverse {token:usename}, so its complicated to replace the value
 # The loop is to find the key given the value(username)

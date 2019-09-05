@@ -138,6 +138,10 @@ def post_ic(company_id):
     img_flip = np.fliplr(img)
     face_bbox_flip, im_flip, shape_flip, im_flip_large = find_face_dlib(img_flip)
 
+    if len(face_bbox_flip) != 1:
+        result = {"Status" : "Error", "Message" : "No Face / More than one face detected"}
+        return make_response(jsonify(result), 404)
+
     save_path = os.path.join(ic_path, '{}.jpg'.format(gen_uuid()))
     save_image(im_flip_large, save_path) 
     emb_flip = compute_emb(im_flip, shape_flip)
